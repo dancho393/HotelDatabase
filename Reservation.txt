@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS public.payment_types(
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.reservations(
+    id SERIAL PRIMARY KEY NOT NULL,
+    payment_type_id INT NOT NULL,
+    guest_id INT NOT NULL,
+    date_from DATE NOT NULL,
+    date_to DATE NOT NULL,
+    total_price NUMERIC(7,2),
+    FOREIGN KEY (payment_type_id) REFERENCES public.payment_types (id),
+    FOREIGN KEY (guest_id) REFERENCES public.guests(id)
+);
