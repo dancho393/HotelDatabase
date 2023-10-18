@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS public.room_types (
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS  public.guests(
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    info  VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone_number VARCHAR(13) NOT NULL,
+    egn VARCHAR(10) NOT NULL ,
+    birth_date DATE NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS public.rooms (
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    price_per_night NUMERIC(6,2) NOT NULL,
+    capacity INTEGER NOT NULL
+);
