@@ -39,7 +39,41 @@ CREATE TABLE IF NOT EXISTS public.reservations(
     FOREIGN KEY (guest_id) REFERENCES public.guests(id)
 );
 
+CREATE TABLE IF NOT EXISTS public.service_names(
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    price NUMERIC(6,2)
+);
 
+CREATE TABLE IF NOT EXISTS public.services(
+    id SERIAL PRIMARY KEY NOT NULL,
+    service_name_id INT NOT NULL,
+    price NUMERIC(6,2),
+    quantity INTEGER NOT NULL,
+    FOREIGN KEY (service_name_id) REFERENCES public.service_names (id)
+);
+
+
+CREATE TABLE IF NOT EXISTS public.services_reservations(
+    service_id INT NOT NULL,
+    reservation_id INT NOT NULL,
+    FOREIGN KEY (service_id) REFERENCES public.services (id),
+    FOREIGN KEY (reservation_id) REFERENCES public.reservations (id)
+);
+
+CREATE TABLE IF NOT EXISTS public.rooms_reservations(
+    room_id INT NOT NULL,
+    reservation_id INT NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES public.rooms (id),
+    FOREIGN KEY (reservation_id) REFERENCES public.reservations (id)
+);
+
+CREATE TABLE IF NOT EXISTS public.review(
+    id SERIAL PRIMARY KEY NOT NULL,
+    reservation_id INT NOT NULL,
+    guest_id INT ,
+    rating INT
+);
 
 -- TRIGGER FUNCTION
 CREATE OR REPLACE FUNCTION calculate_reservation_price_with_services()
