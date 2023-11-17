@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.service_names(
 CREATE TABLE IF NOT EXISTS public.services(
     id SERIAL PRIMARY KEY NOT NULL,
     service_name_id INT NOT NULL,
-    price NUMERIC(6,2),
+    price NUMERIC(6,2) NULL,
     quantity INTEGER NOT NULL,
     FOREIGN KEY (service_name_id) REFERENCES public.service_names (id)
 );
@@ -113,4 +113,25 @@ CREATE TRIGGER calculate_reservation_price_with_services_trigger
 AFTER INSERT OR UPDATE ON public.rooms_reservations
 FOR EACH ROW
 EXECUTE FUNCTION calculate_reservation_price_with_services();
+
+-- TRIGGER FUNCTION 
+CREATE OR REPLACE FUNCTION calculate_price()
+RETURNS TRIGGER AS $$
+BEGIN
+	-- Update price in services table
+    UPDATE public.services AS s
+    SET price = (sn.price * NEW.quantity)
+    FROM public.service_names AS sn
+    WHERE sn.id = NEW.service_name_id AND s.service_name_id = NEW.service_name_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- TRIGGER
+CREATE TRIGGER update_service_price
+AFTER INSERT ON public.services
+FOR EACH ROW
+EXECUTE FUNCTION calculate_price();
+
 
