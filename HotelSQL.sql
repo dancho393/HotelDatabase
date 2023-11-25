@@ -1,4 +1,3 @@
---TABLES
 CREATE TABLE IF NOT EXISTS public.room_types (
     id SERIAL PRIMARY KEY NOT NULL,
     name VARCHAR(100) NOT NULL
@@ -48,9 +47,13 @@ CREATE TABLE IF NOT EXISTS public.service_names(
 CREATE TABLE IF NOT EXISTS public.services(
     id SERIAL PRIMARY KEY NOT NULL,
     service_name_id INT NOT NULL,
+	season_id INT NOT NULL,
+	reservation_id INT NOT NULL,
     price NUMERIC(6,2),
     quantity INTEGER NOT NULL,
-	FOREIGN KEY (service_name_id) REFERENCES public.service_names (id)
+	FOREIGN KEY (service_name_id) REFERENCES public.service_names (id),
+	FOREIGN KEY (season_id) REFERENCES public.seasonal_promotions (id),
+	FOREIGN KEY (reservation_id) REFERENCES public.reservations (id)
 );
 
 
@@ -80,6 +83,7 @@ CREATE TABLE IF NOT EXISTS public.seasonal_promotions(
     date_from DATE NOT NULL,
     date_to DATE NOT NULL
 );
+
 
 --INSERTS
 INSERT INTO public.payment_types (name) VALUES
@@ -155,7 +159,7 @@ VALUES
     ('Spring Special Offer', '2023-03-20', '2023-06-20'),
     ('Summer Special Offer', '2023-06-21', '2023-09-22'),
     ('Autumn Special Offer', '2023-09-23', '2023-12-20'),
-    ('Winter Special Offer', '2023-12-21', '2024-03-19');
+    ('Winter Special Offer', '2023-09-21', '2024-03-19');
   
  
   
