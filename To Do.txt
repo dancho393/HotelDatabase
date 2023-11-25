@@ -1,0 +1,6 @@
+--Validation for seasonal service
+--table validation
+--checking if room is free for the period before you  make a reservation
+--check if price adds up service price to the total price of reservation
+--users
+--Add relations to review table and make it calculate average rate
