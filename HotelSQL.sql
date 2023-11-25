@@ -57,12 +57,6 @@ CREATE TABLE IF NOT EXISTS public.services(
 );
 
 
-CREATE TABLE IF NOT EXISTS public.services_reservations(
-    service_id INT NOT NULL,
-    reservation_id INT NOT NULL,
-    FOREIGN KEY (service_id) REFERENCES public.services (id),
-    FOREIGN KEY (reservation_id) REFERENCES public.reservations (id)
-);
 
 CREATE TABLE IF NOT EXISTS public.rooms_reservations(
     room_id INT NOT NULL,
