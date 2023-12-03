@@ -174,9 +174,6 @@ VALUES
   (3,5);
 
 
-INSERT INTO services_reservations (service_id, reservation_id)
-VALUES (1, 2);
-
 
 --SELECT QUERIES
  SELECT reservations(id),rooms(name),guests(name),reservation(date_from),reservation(date_to)
