@@ -3,3 +3,4 @@
 3.check if price adds up service price to the total price of reservation
 4.users
 5.Add relations to review table and make it calculate average rate
+6.Documentation
