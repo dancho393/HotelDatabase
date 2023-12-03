@@ -2,25 +2,24 @@ CREATE TABLE IF NOT EXISTS public.room_types (
     id SERIAL PRIMARY KEY NOT NULL,
     name VARCHAR(100) NOT NULL
 );
-CREATE TABLE IF NOT EXISTS  public.guests(
+CREATE TABLE IF NOT EXISTS public.guests (
     id SERIAL PRIMARY KEY NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    info  VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    phone_number VARCHAR(13) NOT NULL,
-    egn VARCHAR(10) NOT NULL ,
+    name VARCHAR(100) NOT NULL CHECK (name <> '' AND name IS NOT NULL),
+    info VARCHAR(100) NOT NULL CHECK (info <> '' AND info IS NOT NULL),
+    email VARCHAR(100) NOT NULL CHECK (email <> '' AND email IS NOT NULL),
+    phone_number VARCHAR(13) NOT NULL CHECK (phone_number <> '' AND phone_number IS NOT NULL),
+    egn VARCHAR(10) NOT NULL CHECK (egn <> '' AND egn IS NOT NULL),
     birth_date DATE NOT NULL
 );
 
 
 CREATE TABLE IF NOT EXISTS public.rooms (
     id SERIAL PRIMARY KEY NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    price_per_night NUMERIC(6,2) NOT NULL,
-    capacity INTEGER NOT NULL,
-	room_type_id INT NOT NULL,
-	FOREIGN KEY (room_type_id) REFERENCES public.room_types(id)
-	
+    name VARCHAR(100) NOT NULL CHECK (name <> '' AND name IS NOT NULL),
+    price_per_night NUMERIC(6,2) NOT NULL CHECK (price_per_night >= 0),
+    capacity INTEGER NOT NULL CHECK (capacity >= 0),
+    room_type_id INT NOT NULL,
+    FOREIGN KEY (room_type_id) REFERENCES public.room_types(id)
 );
 
 CREATE TABLE IF NOT EXISTS public.payment_types(
@@ -28,14 +27,14 @@ CREATE TABLE IF NOT EXISTS public.payment_types(
     name VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.reservations(
+CREATE TABLE IF NOT EXISTS public.reservations (
     id SERIAL PRIMARY KEY NOT NULL,
     payment_type_id INT NOT NULL,
     guest_id INT NOT NULL,
     date_from DATE NOT NULL,
     date_to DATE NOT NULL,
-    total_price NUMERIC(7,2),
-    FOREIGN KEY (payment_type_id) REFERENCES public.payment_types (id),
+    total_price NUMERIC(7,2) CHECK (total_price >= 0),
+    FOREIGN KEY (payment_type_id) REFERENCES public.payment_types(id),
     FOREIGN KEY (guest_id) REFERENCES public.guests(id)
 );
 CREATE TABLE IF NOT EXISTS public.service_names(
@@ -71,11 +70,11 @@ CREATE TABLE IF NOT EXISTS public.review(
 	guest_id INT ,
 	rating INT
 );
-CREATE TABLE IF NOT EXISTS public.seasonal_promotions(
+CREATE TABLE IF NOT EXISTS public.seasonal_promotions (
     id SERIAL PRIMARY KEY NOT NULL,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL CHECK (name <> '' AND name IS NOT NULL),
     date_from DATE NOT NULL,
-    date_to DATE NOT NULL
+    date_to DATE NOT NULL CHECK (date_to >= date_from)
 );
 
 
