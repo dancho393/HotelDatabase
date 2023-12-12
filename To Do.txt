@@ -1,5 +1,4 @@
 1.Validation for seasonal service
-2.checking if room is free for the period before you  make a reservation
 3.users
 4.Selects
 5..Documentation
