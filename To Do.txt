@@ -2,4 +2,5 @@
 2.checking if room is free for the period before you  make a reservation
 3.users
 4.Add relations to review table and make it calculate average rate
-5.Documentation
+5.Selects
+6..Documentation
