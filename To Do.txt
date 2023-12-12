@@ -1,6 +1,5 @@
 1.Validation for seasonal service
 2.checking if room is free for the period before you  make a reservation
-3.check if price adds up service price to the total price of reservation
-4.users
-5.Add relations to review table and make it calculate average rate
-6.Documentation
+3.users
+4.Add relations to review table and make it calculate average rate
+5.Documentation
