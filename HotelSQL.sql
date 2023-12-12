@@ -359,3 +359,4 @@ VALUES (2, 1);
 
 --------------Selects
 
+SELECT * FROM public.reservations WHERE CURRENT_DATE BETWEEN date_from AND date_to;
