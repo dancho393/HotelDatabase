@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     price_per_night NUMERIC(6,2) NOT NULL CHECK (price_per_night >= 0),
     capacity INTEGER NOT NULL CHECK (capacity >= 0),
     room_type_id INT NOT NULL,
+	rating INT NULLABLE,
     FOREIGN KEY (room_type_id) REFERENCES public.room_types(id)
 );
 
@@ -37,23 +38,32 @@ CREATE TABLE IF NOT EXISTS public.reservations (
     FOREIGN KEY (payment_type_id) REFERENCES public.payment_types(id),
     FOREIGN KEY (guest_id) REFERENCES public.guests(id)
 );
+
+
+CREATE TABLE IF NOT EXISTS public.seasonal_promotions (
+    id SERIAL PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL CHECK (name <> '' AND name IS NOT NULL),
+    date_from DATE NOT NULL,
+    date_to DATE NOT NULL CHECK (date_to >= date_from)
+);
 CREATE TABLE IF NOT EXISTS public.service_names(
     id SERIAL PRIMARY KEY NOT NULL,
     name VARCHAR(100) NOT NULL,
-	price NUMERIC(6,2)
+	price NUMERIC(6,2),
+	season_id INT NOT NULL,
+	FOREIGN KEY (season_id) REFERENCES public.seasonal_promotions (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.services(
     id SERIAL PRIMARY KEY NOT NULL,
     service_name_id INT NOT NULL,
-	season_id INT NOT NULL,
 	reservation_id INT NOT NULL,
     price NUMERIC(6,2),
     quantity INTEGER NOT NULL,
 	FOREIGN KEY (service_name_id) REFERENCES public.service_names (id),
-	FOREIGN KEY (season_id) REFERENCES public.seasonal_promotions (id),
 	FOREIGN KEY (reservation_id) REFERENCES public.reservations (id)
 );
+
 
 
 
@@ -66,18 +76,19 @@ CREATE TABLE IF NOT EXISTS public.rooms_reservations(
 
 CREATE TABLE IF NOT EXISTS public.review(
 	id SERIAL PRIMARY KEY NOT NULL,
-	reservation_id INT NOT NULL,
-	guest_id INT ,
-	rating INT
-);
-CREATE TABLE IF NOT EXISTS public.seasonal_promotions (
-    id SERIAL PRIMARY KEY NOT NULL,
-    name VARCHAR(100) NOT NULL CHECK (name <> '' AND name IS NOT NULL),
-    date_from DATE NOT NULL,
-    date_to DATE NOT NULL CHECK (date_to >= date_from)
+	room_id INT NOT NULL,
+	guest_id INT NULL,
+	rating INT CHECK (rating >= 1 AND rating <= 5),
+	coment VARCHAR(100) NOT NULL,
+	FOREIGN KEY (room_id) REFERENCES public.rooms (id),
+	FOREIGN KEY (guest_id) REFERENCES public.guests (id)
 );
 
-
+INSERT INTO public.review(room_id,guest_id,rating,coment) VALUES
+(1,NULL,5,'Primeren comentar'),
+(1,NULL,5,'Primeren comentar'),
+(1,NULL,3,'Primeren comentar'),
+(1,NULL,3,'Primeren comentar');
 --INSERTS
 INSERT INTO public.payment_types (name) VALUES
   ('Credit Card'),
@@ -90,6 +101,16 @@ INSERT INTO public.payment_types (name) VALUES
   ('Bitcoin'),
   ('Check'),
   ('Amazon Pay');
+  
+  
+  
+    INSERT INTO public.seasonal_promotions(name, date_from, date_to)
+VALUES 
+    ('Year-Round Special', '2023-01-01', '2023-12-31'),
+    ('Spring Special Offer', '2023-03-20', '2023-06-20'),
+    ('Summer Special Offer', '2023-06-21', '2023-09-22'),
+    ('Autumn Special Offer', '2023-09-23', '2023-12-20'),
+    ('Winter Special Offer', '2023-09-21', '2024-03-19');
 	
 INSERT INTO public.room_types (name)
 VALUES 
@@ -99,14 +120,15 @@ VALUES
   ('Twin Room'),
   ('Family Room');
 
-INSERT INTO public.service_names(name,price) 
+INSERT INTO public.service_names(name,price,season_id) 
 VALUES
-	('Pool',15),
-	('Dinner',5),
-	('Lunch',5),
-	('Breakfast',5),
-	('SPA',10),
-	('Fitness',5);
+	('OutsidePool',15,3),
+	('InsidePool',25,1),
+	('Dinner',5,1),
+	('Lunch',5,1),
+	('Breakfast',5,1),
+	('SPA',10,1),
+	('Fitness',5,1);
 	
 	
 INSERT INTO public.rooms (name,price_per_night,capacity,room_type_id) VALUES
@@ -146,13 +168,13 @@ INSERT INTO public.reservations(payment_type_id, guest_id, date_from, date_to) V
   (3, 3, '2023-11-12', '2023-11-17'),
   (3, 3, '2023-11-22', '2023-11-27');
   
-  INSERT INTO public.seasonal_promotions(name, date_from, date_to)
-VALUES 
-    ('Year-Round Special', '2023-01-01', '2023-12-31'),
-    ('Spring Special Offer', '2023-03-20', '2023-06-20'),
-    ('Summer Special Offer', '2023-06-21', '2023-09-22'),
-    ('Autumn Special Offer', '2023-09-23', '2023-12-20'),
-    ('Winter Special Offer', '2023-09-21', '2024-03-19');
+  
+  INSERT INTO public.reservations(payment_type_id, guest_id, date_from, date_to) VALUES
+  (1,1,'2023-12-13','2023-12-15');
+  
+
+INSERT INTO rooms_reservations (room_id, reservation_id)
+VALUES (11, 1); 
   
  
   
@@ -166,71 +188,88 @@ VALUES (3, 1);
 INSERT INTO rooms_reservations (room_id, reservation_id)
 VALUES (4, 1);
 
+INSERT INTO rooms_reservations (room_id, reservation_id)
+VALUES (5, 1);
 
-INSERT INTO public.services (service_name_id, quantity)
+
+INSERT INTO public.services (service_name_id, quantity,reservation_id)
 VALUES
-  (1,4),
-  (2,4),
-  (3,5);
+  (29,4,1),
+  (30,4,1),
+  (31,4,1),
+  (32,4,1);
+ 
 
 
 
 --SELECT QUERIES
- SELECT reservations(id),rooms(name),guests(name),reservation(date_from),reservation(date_to)
- FROM public.reservations;
+--  SELECT reservations(id),rooms(name),guests(name),reservation(date_from),reservation(date_to)
+--  FROM public.reservations;
 
 
 
 	-- TRIGGER FUNCTION
-	CREATE OR REPLACE FUNCTION calculate_reservation_price()
-	RETURNS TRIGGER AS $$
-	DECLARE
-	  room_price NUMERIC(6,2);
-	  service_price NUMERIC(6,2);
-	BEGIN
+	--1. TRIGGER FUNCTION
+CREATE OR REPLACE FUNCTION calculate_reservation_price()
+RETURNS TRIGGER AS $$
+DECLARE
+  room_price NUMERIC(6,2);
+  service_price NUMERIC(6,2);
+BEGIN
+  -- Calculate room price
+  room_price = (
+    SELECT SUM(r.price_per_night * (res.date_to - res.date_from + 1))
+    FROM rooms r
+    JOIN rooms_reservations rr ON r.id = rr.room_id
+    JOIN reservations res ON rr.reservation_id = res.id
+    WHERE res.id = NEW.reservation_id
+  );
 
-	  room_price = (
-		SELECT SUM(r.price_per_night * (res.date_to - res.date_from + 1))
-		FROM rooms r
-		JOIN rooms_reservations rr ON r.id = rr.room_id
-		JOIN reservations res ON rr.reservation_id = res.id
-		WHERE res.id = NEW.reservation_id
-	  );
+-- Calculate service price
+  service_price = COALESCE((
+    SELECT SUM(sn.price * s.quantity)
+    FROM services s
+    JOIN service_names sn ON s.service_name_id = sn.id
+    WHERE s.reservation_id = NEW.reservation_id
+  ), 0.0);
 
+  -- Update total price in reservations table
+  UPDATE reservations
+  SET total_price = room_price + service_price
+  WHERE id = NEW.reservation_id;
 
-	  service_price = COALESCE((
-		SELECT SUM(s.price * s.quantity)
-		FROM services s
-		JOIN services_reservations sr ON s.id = sr.service_id
-		WHERE sr.reservation_id = NEW.reservation_id
-	  ), 0.0);
+	RAISE NOTICE 'Room Price: %, Service Price: %, Total Price: %', room_price, service_price, room_price + service_price;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
+	-- TRIGGER for public.rooms_reservations
+CREATE TRIGGER calculate_reservation_price_rooms_reservations
+AFTER INSERT OR UPDATE ON public.rooms_reservations
+FOR EACH ROW
+EXECUTE FUNCTION calculate_reservation_price();
 
-	  UPDATE reservations
-	  SET total_price = room_price + service_price
-	  WHERE id = NEW.reservation_id;
-
-	  RETURN NEW;
-	END;
-	$$ LANGUAGE plpgsql;
-
-	-- TRIGGER
-	CREATE TRIGGER calculate_reservation_price_trigger
-	AFTER INSERT OR UPDATE ON public.rooms_reservations
-	FOR EACH ROW
-	EXECUTE FUNCTION calculate_reservation_price();
+-- TRIGGER for public.services
+CREATE TRIGGER calculate_reservation_price_services
+AFTER INSERT ON public.services
+FOR EACH ROW
+EXECUTE FUNCTION calculate_reservation_price();
 	
 	
 	
-----AnotherTrigger 
+--2.CalculateServicePrice
 
-CREATE OR REPLACE FUNCTION calculate_price()
+-- TRIGGER FUNCTION
+CREATE OR REPLACE FUNCTION calculate_service_price()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.services AS s
-    SET price = (sn.price * NEW.quantity)
-    FROM public.service_names AS sn
-    WHERE sn.id = NEW.service_name_id AND s.service_name_id = NEW.service_name_id;
+    SET price = (
+        SELECT sn.price * NEW.quantity
+        FROM public.service_names AS sn
+        WHERE sn.id = NEW.service_name_id
+    )
+    WHERE s.id = NEW.id;
 
     RETURN NEW;
 END;
@@ -240,5 +279,83 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_service_price
 AFTER INSERT ON public.services
 FOR EACH ROW
-EXECUTE FUNCTION calculate_price();
+EXECUTE FUNCTION calculate_service_price();
+
+
+
+--3 Average Rating Trigger
+CREATE OR REPLACE FUNCTION update_room_rating()
+RETURNS TRIGGER AS $$
+DECLARE
+  avg_rating NUMERIC(3,2);
+BEGIN
+  -- Calculate average rating for the room
+  SELECT AVG(rating) INTO avg_rating
+  FROM review
+  WHERE room_id = NEW.room_id;
+
+  -- Update the room rating in the rooms table
+  UPDATE rooms
+  SET rating = avg_rating
+  WHERE id = NEW.room_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- TRIGGER for public.review
+CREATE TRIGGER update_room_rating_trigger
+AFTER INSERT ON public.review
+FOR EACH ROW
+EXECUTE FUNCTION update_room_rating();
+
+
+--4.Function
+-- Trigger Function to Check Room Availability
+CREATE OR REPLACE FUNCTION check_room_availability()
+RETURNS TRIGGER AS $$
+DECLARE
+  reservation_period TSRANGE;
+  overlapping_reservations INTEGER;
+BEGIN
+  -- Get the reservation period for the new reservation
+  SELECT daterange(res.date_from, res.date_to, '[]') INTO reservation_period
+  FROM reservations res
+  WHERE res.id = NEW.reservation_id;
+
+  -- Check for overlapping reservations for the given room and period
+  SELECT COUNT(*)
+  INTO overlapping_reservations
+  FROM rooms_reservations rr
+  JOIN reservations res ON rr.reservation_id = res.id
+  WHERE rr.room_id = NEW.room_id
+    AND tsrange(res.date_from, res.date_to, '[]') && reservation_period;
+
+  -- If there are overlapping reservations, raise an exception
+  IF overlapping_reservations > 0 THEN
+    RAISE EXCEPTION 'Room is not available for the specified period.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for public.rooms_reservations to Check Room Availability
+CREATE TRIGGER check_room_availability_trigger
+BEFORE INSERT ON public.rooms_reservations
+FOR EACH ROW
+EXECUTE FUNCTION check_room_availability();
+
+
+--Insert for Romm validation check
+INSERT INTO rooms_reservations (room_id, reservation_id)
+VALUES (11, 1); 
+  
+ 
+INSERT INTO rooms_reservations (room_id, reservation_id)
+VALUES (2, 1);
+
+
+
+--------------Selects
 
