@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     price_per_night NUMERIC(6,2) NOT NULL CHECK (price_per_night >= 0),
     capacity INTEGER NOT NULL CHECK (capacity >= 0),
     room_type_id INT NOT NULL,
-	rating INT NULLABLE,
+	rating INT ,
     FOREIGN KEY (room_type_id) REFERENCES public.room_types(id)
 );
 
@@ -31,9 +31,11 @@ CREATE TABLE IF NOT EXISTS public.payment_types(
 CREATE TABLE IF NOT EXISTS public.reservations (
     id SERIAL PRIMARY KEY NOT NULL,
     payment_type_id INT NOT NULL,
+	cancelled BOOLEAN NOT NULL,
     guest_id INT NOT NULL,
     date_from DATE NOT NULL,
     date_to DATE NOT NULL,
+    number_guests INTEGER,
     total_price NUMERIC(7,2) CHECK (total_price >= 0),
     FOREIGN KEY (payment_type_id) REFERENCES public.payment_types(id),
     FOREIGN KEY (guest_id) REFERENCES public.guests(id)
@@ -341,22 +343,80 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger for public.rooms_reservations to Check Room Availability
-CREATE TRIGGER check_room_availability_trigger
-BEFORE INSERT ON public.rooms_reservations
-FOR EACH ROW
-EXECUTE FUNCTION check_room_availability();
+--5.0
 
 
---Insert for Romm validation check
-INSERT INTO rooms_reservations (room_id, reservation_id)
-VALUES (11, 1); 
+---SELECTSSSS
+--Да се направи заявка за отчет на пристигащите резервации към днешна дата 
+--(от гледна точка на рецепционист). Резултатът от заявката да съдържа 
+--данни за номер на резервация, номер на стаята, която е резервирана, 
+--имената на клиента към резервацията, датите на престой, броя души, 
+--крайната сума и метод на плащане
+SELECT
+    r.id AS reservation_number,
+    rm.name AS room_name,
+    g.name AS guest_name,
+    r.number_guests AS number_of_guests, 
+    r.total_price AS total_amount,
+    pt.name AS payment_type,
+    r.date_from AS reservation_start_date,
+    r.date_to AS reservation_end_date
+FROM
+    public.reservations r
+JOIN
+    public.guests g ON r.guest_id = g.id
+JOIN
+    public.rooms_reservations rr ON r.id = rr.reservation_id
+JOIN
+    public.rooms rm ON rr.room_id = rm.id
+JOIN
+    public.payment_types pt ON r.payment_type_id = pt.id
+WHERE
+    CURRENT_DATE BETWEEN r.date_from AND r.date_to
+    AND r.date_from = CURRENT_DATE
+	AND r.cancelled=false;
+	
+	
+-- 	Да се направи заявка за отчет на избраните допълнителни услуги към 
+-- резервация по име на клиент. Заявката да се базира на идентификатор на 
+-- резервацията. Резултатът да включва името на услугата, количеството от 
+-- услугата и финалната цена за услугата.
+	
+	SELECT g.name AS guest_name,
+       sn.name AS service_name,
+       s.quantity,
+       sn.price * s.quantity AS total_price
+FROM public.services s
+JOIN public.service_names sn ON s.service_name_id = sn.id
+JOIN public.reservations r ON s.reservation_id = r.id
+JOIN public.guests g ON r.guest_id = g.id
+WHERE r.id = 1 AND r.cancelled=false;
+
+
+-- Да се направи заявка отчет, показваща най-натовареният период на 
+-- резервации. Резултатът да включва брой резервации и стаите към тях за 
+-- дадения период
+
+SELECT
+    r.date_from AS reservation_date,
+    rm.name AS room_name,
+    COUNT(*) AS reservation_count
+FROM
+    public.reservations r
+JOIN
+    public.rooms_reservations rr ON r.id = rr.reservation_id
+JOIN
+    public.rooms rm ON rr.room_id = rm.id
+GROUP BY
+    r.date_from, rm.name
+ORDER BY
+    reservation_count DESC
+LIMIT 5;
+
+-- Да се покажат последователността от действия, съответстващи на 
+-- анулирането на резервация. Изтриване на резервацията не е допустимо от 
+-- гледна точка на принципа за хисторизация на резервациите.
+UPDATE public.reservations SET cancelled = TRUE WHERE id = 31;
   
- 
-INSERT INTO rooms_reservations (room_id, reservation_id)
-VALUES (2, 1);
+  
 
-
-
---------------Selects
-
-SELECT * FROM public.reservations WHERE CURRENT_DATE BETWEEN date_from AND date_to;
